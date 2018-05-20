@@ -1,6 +1,8 @@
 {
     "name": "Cordonez.Modules.FindMemebers",
     "references": [],
-    "includePlatforms": [],
+    "includePlatforms": [
+        "Editor"
+    ],
     "excludePlatforms": []
 }
