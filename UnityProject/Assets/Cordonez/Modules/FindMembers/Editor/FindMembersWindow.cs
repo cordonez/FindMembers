@@ -1,7 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Cordonez.Modules.FindMembers.Editor
 {
@@ -10,14 +13,14 @@ namespace Cordonez.Modules.FindMembers.Editor
 		private string m_componentAssembly = "";
 		private string m_componentTypeSearched = "";
 		private string m_fieldTypeSearched = "";
+		private Vector2 m_scrollPos;
 		private bool m_searchOnlyNulls;
 		private bool m_showComponents;
-		private Vector2 m_scrollPos;
 
 		[MenuItem("Tools/Find members")]
 		public static void CreateWindow()
 		{
-			FindMembersWindow window = (FindMembersWindow)GetWindow(typeof(FindMembersWindow));
+			FindMembersWindow window = (FindMembersWindow) GetWindow(typeof(FindMembersWindow));
 			window.Show();
 		}
 
@@ -32,7 +35,6 @@ namespace Cordonez.Modules.FindMembers.Editor
 			UpdateResults();
 		}
 
-
 		private void UpdateResults()
 		{
 			Type componentType = FindType(m_componentTypeSearched, m_componentAssembly);
@@ -42,21 +44,32 @@ namespace Cordonez.Modules.FindMembers.Editor
 				return;
 			}
 
-			var componentsCollection = FindObjectsOfType(componentType);
-			m_showComponents = EditorGUILayout.Foldout(m_showComponents,
-				string.Format("Found {0} components", componentsCollection.Length), true);
+			int scenesCount = SceneManager.sceneCount;
+			List<GameObject> allGameobjects = new List<GameObject>();
+			for (int i = 0; i < scenesCount; i++)
+			{
+				allGameobjects.AddRange(SceneManager.GetSceneAt(i).GetRootGameObjects().ToList());
+			}
+
+			List<Component> componentsCollection = new List<Component>();
+			foreach (GameObject gameObject in allGameobjects)
+			{
+				Component[] components = gameObject.GetComponentsInChildren(componentType, true);
+				componentsCollection.AddRange(components.Where(_component => _component != null));
+			}
+
+			m_showComponents = EditorGUILayout.Foldout(m_showComponents, string.Format("Found {0} components", componentsCollection.Count), true);
 			if (m_showComponents)
 			{
-				foreach (var component in componentsCollection)
+				foreach (Component component in componentsCollection)
 				{
 					GUILayout.Label("\t" + component.name);
 				}
 			}
 
 			EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
-
 			m_scrollPos = EditorGUILayout.BeginScrollView(m_scrollPos);
-			foreach (var component in componentsCollection)
+			foreach (Component component in componentsCollection)
 			{
 				FieldInfo[] fields = component.GetType().GetFields();
 				foreach (FieldInfo field in fields)
@@ -75,8 +88,14 @@ namespace Cordonez.Modules.FindMembers.Editor
 
 		private bool ShouldFieldBeDisplayed(object _component, FieldInfo _field, string _type)
 		{
-			return (_field.FieldType.ToString() == _type || _field.FieldType.BaseType.FullName.Contains(_type))
-				   && (!m_searchOnlyNulls || _field.GetValue(_component) == null || _field.GetValue(_component).Equals(null));
+			bool result = _field.FieldType.ToString() == _type;
+			result |= _field.FieldType.BaseType != null && _field.FieldType.BaseType.FullName != null && _field.FieldType.BaseType.FullName.Contains(_type);
+			if (m_searchOnlyNulls)
+			{
+				result &= _field.GetValue(_component) == null || _field.GetValue(_component).Equals(null);
+			}
+
+			return result;
 		}
 
 		private void DrawHeader()
