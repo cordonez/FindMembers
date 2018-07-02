@@ -1,13 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using UnityEditor;
-using UnityEngine;
-using UnityEngine.SceneManagement;
-
-namespace Cordonez.Modules.FindMembers.Editor
+﻿namespace Cordonez.Modules.FindMembers.Editor
 {
+	using System;
+	using System.Collections.Generic;
+	using System.Linq;
+	using System.Reflection;
+	using UnityEditor;
+	using UnityEngine;
+	using UnityEngine.SceneManagement;
+
 	public class FindMembersWindow : EditorWindow
 	{
 		private string m_componentAssembly = "";
